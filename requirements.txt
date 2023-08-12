@@ -1,0 +1,9 @@
+dash==2.11.1
+dash_core_components==2.0.0
+dash_html_components==2.0.0
+matplotlib==3.7.2
+numpy==1.23.5
+pandas==1.5.3
+plotly==5.15.0
+gunicorn
+dash-tools
