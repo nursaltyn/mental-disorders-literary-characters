@@ -10,16 +10,12 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-
+import json
 # Sample data
 
-data = {
-    'Country': ['Russia', 'Russia', 'Russia', 'France', 'France', 'France', 'France'],
-    'Author': ['Dos', 'Dos', 'Tur', 'Dumas', 'Dumas', 'Hugo', 'Hugo'],
-    'Disorder': ['Schizo', 'Depr', 'Schizo', 'Schizo', 'Depr', 'Depr', 'Depr'],
-    'Male': [10, 20, 15, 25, 2, 1, 18],
-    'Female': [5, 15, 8, 18, 1, 20, 10]
-}
+json_file_path = 'C:\Users\user\Downloads\vis_data.json'
+with open(json_file_path, 'r') as json_file:
+    data = json.load(json_file)
 
 df = pd.DataFrame(data)
 
@@ -34,8 +30,8 @@ app.layout = html.Div([
         html.Label('Select a Country:'),
         dcc.Dropdown(
             id='country-dropdown',
-            options=[{'label': country, 'value': country} for country in df['Country'].unique()],
-            value=df['Country'].unique()[0],
+            options=[{'label': country, 'value': country.capitalize()} for country in list(data['country'].keys())],
+            value=list(data['country'].keys())[0],
             multi=False
         ),
         html.Label('Select an Author:'),
@@ -53,7 +49,7 @@ app.layout = html.Div([
     [Input('country-dropdown', 'value')]
 )
 def update_author_dropdown(selected_country):
-    authors = df[df['Country'] == selected_country]['Author'].unique()
+    authors = df['country'][selected_country].keys()
     options = [{'label': author, 'value': author} for author in authors]
     return options
 
@@ -63,14 +59,67 @@ def update_author_dropdown(selected_country):
     [Input('country-dropdown', 'value')]
 )
 def update_bar_chart_country(selected_country):
-    filtered_df = df[df['Country'] == selected_country]
-    filtered_df = filtered_df.drop(columns=['Author'])
-    melted_df = filtered_df.melt(id_vars=['Disorder', 'Country'], var_name='Gender', value_name='Count')
+    # Create separate DataFrames for males and females
+  filtered_df = pd.DataFrame(df['country'][selected_country])
 
-    fig = px.bar(melted_df, x='Disorder', y='Count', color='Gender', barmode='group',
-                 title=f'Distribution of Disorders by Gender in {selected_country}')
+  # Reset the index and move it into a new column
+  filtered_df.reset_index(inplace=True)
 
-    return fig
+  # Rename the new column (optional)
+  filtered_df.rename(columns={'index': 'disorders'}, inplace=True)
+
+  male, female = [], []
+  for ind in filtered_df.index:
+    male_interm = 0
+    female_interm = 0
+    for author in filtered_df.keys():
+      try:
+        male_interm += filtered_df[author][ind]['male']
+        female_interm += filtered_df[author][ind]['female']
+      except:
+        next
+    male.append(male_interm)
+    female.append(female_interm)
+
+  filtered_df['male'] = male
+  filtered_df['female'] = female
+  authors = df['country'][selected_country].keys()
+
+  filtered_df = filtered_df.drop(columns=[col for col in authors])
+  melted_df = filtered_df.melt(id_vars=['disorders'], var_name='Gender', value_name='Count')
+  male_df = melted_df[melted_df['Gender'] == 'male']
+  female_df = melted_df[melted_df['Gender'] == 'female']
+
+  # Define distinct color sequences for males and females
+  color_sequence_male = ['#1f77b4', '#aec7e8']  # Blue shades
+  color_sequence_female = ['#ff7f0e', '#ffbb78']  # Orange shades
+
+  # Create individual bar charts for males and females with distinct colors
+  fig = px.bar(male_df, x='Count', y='disorders', orientation='h', text='Count',
+              title='Population Pyramid: Distribution of Disorders by Gender in Russia (Males)',
+              color='Gender', color_discrete_sequence=color_sequence_male,
+              labels={'Gender': 'Legend'})
+  fig.update_traces(texttemplate='%{text}', textposition='inside', marker=dict(line=dict(color='navy', width=1)))
+
+  fig2 = px.bar(female_df, x='Count', y='disorders', orientation='h', text='Count',
+                title=f'Distribution of Disorders by Gender in {selected_country.capitalize()} (Females)',
+                color='Gender', color_discrete_sequence=color_sequence_female,
+                labels={'Gender': 'Legend'})
+  fig2.update_traces(texttemplate='%{text}', textposition='inside', marker=dict(line=dict(color='firebrick', width=1)))
+
+  # Combine the two figures
+  fig.add_trace(fig2.data[0])
+
+  # Customize layout
+  fig.update_layout(barmode='relative', xaxis_tickangle=-45,
+                    xaxis_title='Count of Cases', yaxis_title='Disorders',
+                    paper_bgcolor='white')
+
+  # Adjust the figure size
+  fig.update_layout(width=1000, height=600)
+
+  # Show the population pyramid plot
+  fig.show()
 
 # Callback to update the second bar chart (disorders by gender and author within selected country)
 @app.callback(
@@ -79,12 +128,30 @@ def update_bar_chart_country(selected_country):
      Input('author-dropdown', 'value')]
 )
 def update_bar_chart_author(selected_country, selected_author):
-    filtered_df = df[(df['Country'] == selected_country) & (df['Author'] == selected_author)]
-    filtered_df = filtered_df.drop(columns=['Country'])
-    melted_df = filtered_df.melt(id_vars=['Author', 'Disorder'], var_name='Gender', value_name='Count')
+    df = pd.DataFrame(data)
+    df = pd.DataFrame(df['country'][selected_country])
+    df.reset_index(inplace=True)
+    # Rename the new column (optional)
+    df.rename(columns={'index': 'disorders'}, inplace=True)
+    df = df.melt(id_vars=['disorders'], var_name='author')
+    male, female = [], []
+    for ind in df.index:
+      try:
+        male.append(df['value'][ind]['male'])
+        female.append(df['value'][ind]['female'])
+      except:
+        male.append(0)
+        female.append(0)
 
-    fig = px.bar(melted_df, x='Disorder', y='Count', color='Gender', barmode='group',
-                 title=f'Distribution of Disorders by Gender and Author in {selected_country} - {selected_author}')
+    df['male'] = male
+    df['female'] = female
+    #delete all rows where the values are both 0
+    df = df[(df['male'] != 0) | (df['female'] != 0)]
+    df = df.drop(columns = ['value'])
+    melted_df = df.melt(id_vars=['author', 'disorders'], var_name='gender', value_name='count')
+    melted_df = melted_df[(melted_df['author'] == selected_author)]
+    fig = px.bar(melted_df, x='disorders', y='count', color='gender', barmode='group',
+                title=f'Distribution of Disorders by Gender and Author in {selected_country.capitalize()} - {selected_author}')
 
     return fig
 
@@ -93,4 +160,3 @@ def update_bar_chart_author(selected_country, selected_author):
 if __name__ == '__main__':
 
     app.run_server(debug=True)
-
