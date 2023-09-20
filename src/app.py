@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import json
 # Sample data
 
-json_file_path = '/content/drive/MyDrive/softpr_sose23/Datasets/characters_disorders/vis_data.json'
+json_file_path = 'C:\Users\user\Downloads\vis_data.json'
 with open(json_file_path, 'r') as json_file:
     data = json.load(json_file)
 
