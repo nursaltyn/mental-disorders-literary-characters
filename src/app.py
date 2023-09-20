@@ -2,9 +2,7 @@ from collections import defaultdict, Counter
 import pandas as pd
 import dash
 from dash import dcc
-import dash_core_components as dcc
 from dash import html
-import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.express as px
 import matplotlib.pyplot as plt
@@ -13,7 +11,7 @@ import plotly.graph_objects as go
 import json
 # Sample data
 
-json_file_path = 'data/vis_data.json'
+json_file_path = 'src/vis_data.json'
 with open(json_file_path, 'r') as json_file:
     data = json.load(json_file)
 
