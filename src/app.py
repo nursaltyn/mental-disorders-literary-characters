@@ -23,7 +23,6 @@ server = app.server
 
 # Layout of the app
 app.layout = html.Div([
-    html.H1('Distribution of Mental Disorders'),
     html.Div([
         html.Label('Select a Country:'),
         dcc.Dropdown(
@@ -94,7 +93,7 @@ def update_bar_chart_country(selected_country):
 
   # Create individual bar charts for males and females with distinct colors
   fig = px.bar(male_df, x='Count', y='disorders', orientation='h', text='Count',
-              title=f'Distribution of Disorders by Gender in {selected_country}',
+              title=f'Distribution of Disorders by Gender in {selected_country.capitalize()}',
               color='Gender', color_discrete_sequence=color_sequence_male,
               labels={'Gender': 'Legend'})
   fig.update_traces(texttemplate='%{text}', textposition='inside', marker=dict(line=dict(color='navy', width=1)))
